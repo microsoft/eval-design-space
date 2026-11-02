@@ -22,7 +22,7 @@ scikit-posthocs==0.16.1
 together==2.32.0
 
 # Optional notebook similarity metrics
-sentence-transformers==5.3.0
+sentence-transformers==5.6.0
 
 # Documentation build (.github/workflows/deploy-pages.yml)
 mkdocs-material==9.7.7
