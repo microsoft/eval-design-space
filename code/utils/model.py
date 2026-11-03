@@ -14,9 +14,13 @@ VLLM_API_KEY = os.environ.get('VLLM_API_KEY', 'EMPTY')
 MODEL_NAME_ALIASES = {
     'mistral-7b-v0.2': 'mistralai/Mistral-7B-Instruct-v0.2',
     'mistral-7b-instruct-v0.2': 'mistralai/Mistral-7B-Instruct-v0.2',
-    'mistral-7b-instruct-v0.3': 'mistralai/Mistral-7B-Instruct-v0.3',
-    'meta-llama-3.1-8b-instruct': 'meta-llama/Llama-3.1-8B-Instruct',
-    'mistral-small-24b-instruct': 'mistralai/Mistral-Small-24B-Instruct-2501',
+    # 'mistral-7b-instruct-v0.3': 'mistralai/Mistral-7B-Instruct-v0.3',
+    # 'meta-llama-3.1-8b-instruct': 'meta-llama/Llama-3.1-8B-Instruct',
+    # 'mistral-small-24b-instruct': 'mistralai/Mistral-Small-24B-Instruct-2501',
+    'mistral-small-24b-instruct': 'nmeist/evaldims-mistral24b',
+    'mistral-7b-instruct-v0.3': 'nmeist/evaldims',
+    'meta-llama-3.1-8b-instruct': 'nmeist/evaldims-llama',
+    'meta-llama-3.3-70b-instruct': 'nmeist/evaldims-llama70b',
 }
 
 VLLM_MODEL_ALIASES = set(MODEL_NAME_ALIASES.keys())

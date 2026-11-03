@@ -1,17 +1,11 @@
-import sys
-from pathlib import Path
-
-if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from utils.paths import REPO_ROOT, repo_path
-
 import json
 import os
+from pathlib import Path
 from together import Together
+from utils.paths import repo_path
 
 
-METADATA_PATH = Path(repo_path("output_data/wang/together/batch_inputs/batch_info.json"))
+METADATA_PATH = Path(repo_path("output_data/armstrong/together/batch_inputs/batch_info.json"))
 client = Together(api_key=os.environ["TOGETHER_API_KEY"])
 data = json.loads(METADATA_PATH.read_text())
 
@@ -20,20 +14,18 @@ data.reverse()
 for item in data:
 
     batch_id = item["batch_id"]
-    
+    # grab the name and job value from parsing the filepath (e.g., '/nlp/scr/nmeist/EvalDims/output_data/armstrong/together/batch_inputs/batch_input_armstrong_armstrong_meta_llama_Meta_Llama_3.1_8B_Instruct_Turbo.jsonl')
 
-    # grab the name and job value from parsing the filepath (e.g., 'output_data/armstrong/together/batch_inputs/batch_input_armstrong_armstrong_meta_llama_Meta_Llama_3.1_8B_Instruct_Turbo.jsonl')
-
-    filename = Path(repo_path(item["file_path"])).name
+    filename = Path(item["file_path"].replace("\\", "/")).name
     name = filename.split("_")[2]
     job = filename.split("_")[3]
     model = item["model"].split("/")[-1]
     # check if there contains a part
     if "part" in item["file_path"]:
-        batch_num = Path(filename).stem.split("_")[-1]
+        batch_num = filename.split("_")[-1].split(".")[0]
     else: 
         batch_num = "part01"
-    # file_path: "output_data/wang/together/batch_inputs/batch_input_armstrong_rozado_meta_llama_3.3_70b_instruct_turbo_part02.jsonl",
+    # file_path: "/nlp/scr/nmeist/EvalDims/output_data/wang/together/batch_inputs/batch_input_armstrong_rozado_meta_llama_3.3_70b_instruct_turbo_part02.jsonl",
 
     # Note: Mistral-7B models not supported in Together AI Batch API
     if model not in ["Llama-3.3-70B-Instruct-Turbo", "Meta-Llama-3.1-8B-Instruct-Turbo", "Mistral-Small-24B-Instruct-2501"]:
@@ -46,6 +38,7 @@ for item in data:
     # batch = client.batches.retrieve(batch_id) # :contentReference[oaicite:5]{index=5}
 
     item["status"] = batch.status
+    breakpoint()
 
     try:
         if batch.status == "FAILED":
@@ -98,7 +91,7 @@ for item in data:
     try:
 
         os.makedirs(repo_path(f"output_data/wang/together/batch_outputs/{model}/"), exist_ok=True)
-        print(f"output_data/wang/together/batch_outputs/{model}/name_{name}_job_{job}_{batch_num}.jsonl")
+        print(repo_path(f"output_data/wang/together/batch_outputs/{model}/name_{name}_job_{job}_{batch_num}.jsonl"))
         client.files.retrieve_content(id=batch.output_file_id, output=repo_path(f"output_data/wang/together/batch_outputs/{model}/name_{name}_job_{job}_{batch_num}.jsonl"))
 
     except Exception as e:

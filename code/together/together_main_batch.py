@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from utils.paths import REPO_ROOT, repo_path
 
@@ -743,7 +743,7 @@ if __name__ == "__main__":
     parser.add_argument(
         'config_path', 
         nargs='?', 
-        default='configs/base_wang.yaml',
+        default='configs/base_armstrong_numtrials40.yaml',
         help='Path to the configuration yaml file'
     )
     parser.add_argument(
@@ -757,6 +757,13 @@ if __name__ == "__main__":
         default=False, 
         help='If set, check the list of things to relaunch and only let the code happen if it fits one of the conditions.'
     )
+    parser.add_argument(
+        'relaunch_path', 
+        nargs='?', 
+        default='misc_scripts/output_structure_violations.csv',
+        help='Path to the relaunch CSV file'
+    )
+
 
     args = parser.parse_args()
 
@@ -771,12 +778,13 @@ if __name__ == "__main__":
     
     print(f"Framework detected: {framework}")
 
-    relaunch_path = 'misc/output_structure_violations.csv'
+    relaunch_path = 'misc_scripts/output_structure_violations.csv'
     relaunch_df = pd.read_csv(repo_path(relaunch_path))
 
     jobs_to_relaunch=None
     launch_all_jobs=True
-    NAMES = ['wang']
+    NAMES = ['lippens']
+    JOBS = ['armstrong', 'rozado', 'wen', 'wang', 'karvonen', 'zollo', 'yin']
 
     for model in MODELS.keys():
         config['Model']['Model_Name'] = model.replace(' ', '_')
@@ -828,6 +836,6 @@ if __name__ == "__main__":
 '''
 
 python together_main_batch.py
-python together_main_batch.py --launch
+python together_main_batch.py --launch --config_path /nlp/scr/nmeist/EvalDims/configs/base_wang.yaml
 
 '''

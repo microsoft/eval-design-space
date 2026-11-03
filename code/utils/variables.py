@@ -1,16 +1,21 @@
 MODELS = {
     # "Mistral-7B-Instruct-v0.3": "mistralai/Mistral-7B-Instruct-v0.3",
     # "mistral-7b-v0.3": "mistralai/Mistral-7B-Instruct-v0.3",
-    # "mistral-7b-v0.2": "mistralai/Mistral-7B-Instruct-v0.2",
-    "meta-llama-3.1-8b-instruct-turbo": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-    # "mistral-small-24b": "mistralai/Mistral-Small-24B-Instruct-2501",
-    "meta-llama-3.3-70b-instruct-turbo": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    # # "mistral-7b-v0.2": "mistralai/Mistral-7B-Instruct-v0.2",
+    # "meta-llama-3.1-8b-instruct-turbo": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    # # "mistral-small-24b": "mistralai/Mistral-Small-24B-Instruct-2501",
+    # "meta-llama-3.3-70b-instruct-turbo": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+
+    # "mistral-small-24b": 'nmeist/evaldims-mistral24b',
+    "mistral-7b-v0.3": 'nmeist/evaldims',
+    "meta-llama-3.1-8b-instruct-turbo": 'nmeist/evaldims-llama',
+    # "meta-llama-3.3-70b-instruct-turbo": 'nmeist/evaldims-llama70b',
 }
 
 MODELS_GPT = {
     "gpt-4o-mini": "gpt-4o-mini",
     # "gpt-4o-2024-11-20": "gpt-4o-2024-11-20",
-    # "gpt-5-nano-2025-08-07": "gpt-5-nano-2025-08-07",
+    "gpt-5-nano-2025-08-07": "gpt-5-nano-2025-08-07",
 }
 
 # NAMES = ['armstrong']

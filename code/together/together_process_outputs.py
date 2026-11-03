@@ -1,10 +1,4 @@
-import sys
 from pathlib import Path
-
-if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from utils.paths import REPO_ROOT, repo_path
 
 import json
 import os
@@ -16,33 +10,34 @@ import re
 
 import argparse
 from utils.variables import MODELS, NAMES, JOBS
+from utils.paths import repo_path
 
 
 
 def process_armstrong():
-    batch_outputs_dir = 'output_data/armstrong/together/batch_outputs'
+    batch_outputs_dir = repo_path('output_data/armstrong/together/batch_outputs')
 
     for model_key in MODELS.keys():
         model = MODELS[model_key].split("/")[-1]
         for name in NAMES:
             for job in JOBS:
                 try: 
-                    output_filepath=f"output_data/armstrong/together/batch_outputs/{model}/name_{name}_job_{job}.jsonl"
-                    with open(repo_path(output_filepath), "r", encoding="utf-8") as f:
+                    output_filepath=f"{batch_outputs_dir}/{model}/name_{name}_job_{job}.jsonl"
+                    with open(output_filepath, "r", encoding="utf-8") as f:
                         pass 
                 except Exception as e:
                     breakpoint()
                 try: 
-                    gpt_4o_example_filepath = f'output_data/armstrong/model_gpt-4o-2024-11-20_temp_1.0_numtrials_10_jobresumes_{job}_names_{name}_random_state_42.csv'
-                    gpt_4o_example_data = pd.read_csv(repo_path(gpt_4o_example_filepath))
+                    gpt_4o_example_filepath = repo_path(f'output_data/armstrong/model_gpt-4o-2024-11-20_temp_1.0_numtrials_10_jobresumes_{job}_names_{name}_random_state_42.csv')
+                    gpt_4o_example_data = pd.read_csv(gpt_4o_example_filepath)
                 except Exception as e:
-                    gpt_4o_example_filepath = f'output_data/armstrong/model_gpt-5-nano-2025-08-07_temp_1.0_numtrials_10_jobresumes_{job}_names_{name}_random_state_42.csv'
-                    gpt_4o_example_data = pd.read_csv(repo_path(gpt_4o_example_filepath))
+                    gpt_4o_example_filepath = repo_path(f'output_data/armstrong/model_gpt-5-nano-2025-08-07_temp_1.0_numtrials_10_jobresumes_{job}_names_{name}_random_state_42.csv')
+                    gpt_4o_example_data = pd.read_csv(gpt_4o_example_filepath)
                 # make a copy of the dataframe: will put the together outputs in the value column 
                 df = gpt_4o_example_data.copy()
 
                     
-                with open(repo_path(output_filepath), "r", encoding="utf-8") as f:
+                with open(output_filepath, "r", encoding="utf-8") as f:
                     for i, line in enumerate(filter(str.strip, f)):
                         obj = json.loads(line)
                         # get the content value
@@ -71,8 +66,8 @@ def process_yin(data_dir=None):
         model = MODELS[model_key].split("/")[-1]
         if not (batch_outputs_dir / model).is_dir():
             continue
-        list_of_files = os.listdir(repo_path(batch_outputs_dir / model))
-        list_of_metadata_files = os.listdir(repo_path(batch_inputs_dir))
+        list_of_files = os.listdir(batch_outputs_dir / model)
+        list_of_metadata_files = os.listdir(batch_inputs_dir)
         for name_bundle in NAMES:
             for job_bundle in JOBS:
 
@@ -94,7 +89,7 @@ def process_yin(data_dir=None):
                 metadata = {}
                 # read in the metadata but have each custom id be a key and the value be the metadata
                 for file in list_of_files_filtered_metadata:
-                    with open(repo_path(batch_inputs_dir / file), "r", encoding="utf-8") as f:
+                    with open(batch_inputs_dir / file, "r", encoding="utf-8") as f:
                         try:
                             data = json.load(f)
                             for obj in data:
@@ -107,7 +102,7 @@ def process_yin(data_dir=None):
 
                 missing_metadata = 0
                 for file in list_of_files_filtered:
-                    with open(repo_path(batch_outputs_dir / model / file), "r", encoding="utf-8") as f:
+                    with open(batch_outputs_dir / model / file, "r", encoding="utf-8") as f:
                         for line in f:
                             if not line.strip():
                                 continue
@@ -127,9 +122,9 @@ def process_yin(data_dir=None):
                             i = metadata[custom_id]["iteration"]
                             dir_out = (processed_batch_outputs_dir / model /
                                        f'temp_1.0_names_{name_bundle}_jobresumes_{job_bundle}' / job)
-                            os.makedirs(repo_path(dir_out), exist_ok=True)
-                            fn_out = os.path.join(repo_path(dir_out), f"run_{i}.json")
-                            with open(repo_path(fn_out), "w", encoding="utf-8") as f:
+                            os.makedirs(dir_out, exist_ok=True)
+                            fn_out = os.path.join(dir_out, f"run_{i}.json")
+                            with open(fn_out, "w", encoding="utf-8") as f:
                                 f.write(json.dumps(records))
                 if missing_metadata:
                     print(f"Skipped {missing_metadata} Yin responses without matching metadata: "
@@ -154,9 +149,9 @@ def _extract_numeric_score(model_response):
 
 
 def process_wang():
-    batch_outputs_dir = 'output_data/wang/together/batch_outputs'
-    batch_inputs_dir = 'output_data/wang/together/batch_inputs'
-    processed_batch_outputs_dir = 'output_data/wang/together/processed_batch_outputs'
+    batch_outputs_dir = repo_path('output_data/wang/together/batch_outputs')
+    batch_inputs_dir = repo_path('output_data/wang/together/batch_inputs')
+    processed_batch_outputs_dir = repo_path('output_data/wang/together/processed_batch_outputs')
 
     NAMES = ['wang']
 
@@ -164,11 +159,11 @@ def process_wang():
     for model_key in MODELS.keys():
         model = MODELS[model_key].split('/')[-1]
         model_batch_output_dir = f"{batch_outputs_dir}/{model}"
-        if not os.path.exists(repo_path(model_batch_output_dir)):
+        if not os.path.exists(model_batch_output_dir):
             continue
 
-        list_of_files = os.listdir(repo_path(model_batch_output_dir))
-        list_of_metadata_files = os.listdir(repo_path(batch_inputs_dir))
+        list_of_files = os.listdir(model_batch_output_dir)
+        list_of_metadata_files = os.listdir(batch_inputs_dir)
 
         for name_bundle in NAMES:
             for job_bundle in JOBS:
@@ -187,7 +182,7 @@ def process_wang():
 
                 metadata = {}
                 for file in list_of_files_filtered_metadata:
-                    with open(repo_path(f"{batch_inputs_dir}/{file}"), 'r', encoding='utf-8') as f:
+                    with open(f"{batch_inputs_dir}/{file}", 'r', encoding='utf-8') as f:
                         try:
                             data = json.load(f)
                             for obj in data:
@@ -205,7 +200,7 @@ def process_wang():
                 rows = {}
 
                 for file in list_of_files_filtered:
-                    with open(repo_path(f"{model_batch_output_dir}/{file}"), 'r', encoding='utf-8') as f:
+                    with open(f"{model_batch_output_dir}/{file}", 'r', encoding='utf-8') as f:
                         for line in f:
                             if not line.strip():
                                 continue
@@ -285,9 +280,9 @@ def process_wang():
                 df['name'] = name_bundle
                 df['job'] = job_bundle
 
-                os.makedirs(repo_path(f"{processed_batch_outputs_dir}/{model}"), exist_ok=True)
+                os.makedirs(f"{processed_batch_outputs_dir}/{model}", exist_ok=True)
                 out_fp = f"{processed_batch_outputs_dir}/{model}/name_{name_bundle}_job_{job_bundle}.csv"
-                df.to_csv(repo_path(out_fp), index=False)
+                df.to_csv(out_fp, index=False)
 
     return
 

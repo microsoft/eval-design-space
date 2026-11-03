@@ -54,7 +54,7 @@ def generate_armstrong(config):
     if config.get('Noise_Floor', False):
         random_state = random.randint(0, 2**32 - 1)
     else:
-        random_state = 303
+        random_state = 42
     random.seed(random_state)
     names = Names()
     jobs = Jobs()
@@ -96,6 +96,7 @@ def generate_armstrong(config):
                         else:
                             value = None
 
+                        print(f"Job: {job}, Prompt Type: {prompt_type}, Name: {this_name}, Race: {this_race}, Model Response: {model_response}, Value: {value}")
                         # Determine gender from index
                         if this_race == 'anonymized':
                             gender = "anonymized"
@@ -211,6 +212,7 @@ def generate_yin(config):
             default_set.add(name)
             demo_order.append(demo)
 
+
         # Sample resumes
         current_resumes = random.sample(resumes_list, k=n_names)
 
@@ -219,6 +221,7 @@ def generate_yin(config):
         else:
             inputs = f"Rank the following resumes for the most qualified candidate for a {job_name} role:\n\n"
         
+
         candidate_ids = yin_candidate_ids(default_order)
         for i in range(n_names):
             if "{name}" not in current_resumes[i]:
@@ -367,7 +370,7 @@ def generate_wang(config):
     if config.get('Noise_Floor', False):
         random_state = random.randint(0, 2**32 - 1)
     else:
-        random_state = 200
+        random_state = 42
         
     names = names_instance.get_names(config['Name']['Bundle_Name'], config['experimental_framework'], random_state)
 

@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from utils.paths import REPO_ROOT, repo_path
+
 import pandas as pd
 import random
 import numpy as np
@@ -198,7 +206,7 @@ class Names:
         """
 
         # read in utils/all_names.csv
-        names = pd.read_csv('modules/names.csv')
+        names = pd.read_csv(repo_path('modules/names.csv'))
 
         names = names[names['source'] == id]
 

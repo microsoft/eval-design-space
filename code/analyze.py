@@ -1,5 +1,3 @@
-from utils.paths import REPO_ROOT, repo_path
-
 # read in the config file to figure out what to run
 import os
 import sys
@@ -13,6 +11,7 @@ from pathlib import Path
 import json
 from together import Together
 from utils.variables import MODELS, NAMES, JOBS, MODELS_GPT
+from utils.paths import repo_path
 
 def main():
     # read in the config file path as an argument
@@ -43,15 +42,15 @@ def main():
     
     # config_path = args.config_path
 
-    base_config_path = args.config_path
-    author = os.path.splitext(os.path.basename(repo_path(base_config_path)))[0].split('base_')[1].split('_')[0]
+    base_config_path = repo_path(args.config_path)
+    author = os.path.splitext(os.path.basename(base_config_path))[0].split('base_')[1].split('_')[0]
 
     if args.all or args.all_together:
         models = MODELS if args.all_together else MODELS_GPT
         for model in models:
             for name in NAMES:
                 for job in JOBS:
-                    with open(repo_path(base_config_path), encoding='utf-8') as config_file:
+                    with open(base_config_path, encoding='utf-8') as config_file:
                         config = yaml.safe_load(config_file)
                     config['Model']['Model_Name'] = model
                     config['Name']['Bundle_Name'] = name
@@ -61,7 +60,7 @@ def main():
                     analyze_results.analyze(args, config, all_together=args.all_together)
         return
 
-    with open(repo_path(base_config_path), encoding='utf-8') as config_file:
+    with open(base_config_path, encoding='utf-8') as config_file:
         config = yaml.safe_load(config_file)
     if args.model is not None:
         config['Model']['Model_Name'] = args.model

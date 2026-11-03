@@ -1304,7 +1304,7 @@ def analyze_yin(args, config, all_together=False):
         # mode='a' appends to the file
         # header=False prevents writing the column names again in the middle of the file
         results_gender.to_csv(repo_path(fn_ranking_gender), mode='a', index=False, header=False)
-        print(f"Appended gender ranking to {fn_ranking_gender}")
+        print(f"Appended gender ranking.")
     else:
         print("No new data to append.")
         

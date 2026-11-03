@@ -3,11 +3,11 @@
 set -u
 
 SESSION="gpt_5o_wang"
-PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
-cd "$PROJECT_DIR" || exit 1
+PROJECT_DIR="/nlp/scr/nmeist/EvalDims"
 
 
 commands=(
+    # python main.py --name armstrong --job armstrong --model gpt-3.5-turbo-0125 --base_config_path configs/base_armstrong.yaml
     # "python main.py --name seshadri --job wen --model Mistral-7B-Instruct-v0.3 --base_config_path configs/base_wang.yaml"
     # "python main.py --name seshadri --job rozado --model Mistral-7B-Instruct-v0.3 --base_config_path configs/base_wang.yaml"
     # "python main.py --name lippens --job wang --model Mistral-7B-Instruct-v0.3 --base_config_path configs/base_wang.yaml"
@@ -106,8 +106,7 @@ for ((w=0; w<window_count; w++)); do
         tmux new-window -t $SESSION -n "$win_name"
     fi
 
-    printf -v quoted_project_dir '%q' "$PROJECT_DIR"
-    tmux send-keys -t $SESSION:$win_name "cd ${quoted_project_dir} && ${cmd}" C-m
+    tmux send-keys -t $SESSION:$win_name "cd ${PROJECT_DIR} && ${cmd}" C-m
 done
 
 echo "Launched $total commands across $window_count tmux windows."
@@ -195,3 +194,4 @@ echo "Attach with: tmux attach -t $SESSION"
 # "python main.py --name seshadri --job zollo --model Mistral-7B-Instruct-v0.2"
 # "python main.py --name seshadri --job yin --model Mistral-7B-Instruct-v0.2"
 # "python main.py --name seshadri --job karvonen --model Mistral-7B-Instruct-v0.2"
+

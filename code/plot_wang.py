@@ -139,7 +139,7 @@ def load_reproduced_setting_vlines(results_dir: str) -> List[Tuple[float, str, s
 		if pd.isna(value):
 			print(f"Skipping reproduced setting for {model}: invalid Score Differences value.")
 			continue
-		vlines.append((float(value), f'Reproduced Setting ({model})', color))
+		vlines.append((float(value), f'Reported Setting ({model})', color))
 	return vlines
 
 
