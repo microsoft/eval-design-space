@@ -1,0 +1,1 @@
+Code is licensed under the [Microsoft Research License Terms](https://github.com/microsoft/eval-design-space/blob/main/MICROSOFT_RESEARCH_LICENSE); all other materials are released under the [Community Data License Agreement – Permissive – Version 2.0](https://cdla.dev/permissive-2-0/).

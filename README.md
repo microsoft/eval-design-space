@@ -24,13 +24,9 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-## Trademarks
+## Licenses
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
-trademarks or logos is subject to and must follow
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
+Code is licensed under the [Microsoft Research License Terms](https://github.com/microsoft/eval-design-space/blob/main/MICROSOFT_RESEARCH_LICENSE); all other materials are released under the [Community Data License Agreement – Permissive – Version 2.0](https://cdla.dev/permissive-2-0/).
 
 ## Privacy & Cookies
 
