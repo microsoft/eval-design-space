@@ -1,0 +1,4 @@
+Metric,Value
+Average Scores,"{'Privilege_Avg_Score': 7.719166666666666, 'Protect_Avg_Score': 7.8275, 'Neutral_Avg_Score': 7.644166666666667}"
+Score Differences,0.10833333333333339
+Disparate Impact Ratios,"{'Avg_Score': {'Privilege': 0.9861599063132119, 'Protect': 1.0, 'Neutral': 0.9765783029915895}, 'Rank': {'Privilege': 0.9506148353827845, 'Protect': 0.9053946846489488, 'Neutral': 1.0}}"

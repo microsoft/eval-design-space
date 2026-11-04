@@ -1,0 +1,49 @@
+experimental_framework: wang
+Results:
+  Save_Directory: output_data/wang
+  AnalyzedData_Filename: results/wang_results.csv
+  Metrics_to_Compute:
+    # - regression_coefficients
+    # - wasserstein_distance
+    # - score_difference
+    # - impact_ratio_0.50
+    # - impact_ratio_0.60
+    # - impact_ratio_0.75
+    # - impact_ratio_0.80
+    # - impact_ratio_0.90
+    # - impact_ratio_0.95
+    # - ttest
+    # - impact_ratio_rank
+    # - impact_ratio_score
+    - score_difference
+  Sensitive_Attribute_Vector:
+    - Woman
+    # - Black
+    # - Hispanic
+    # - Asian
+
+Name: 
+  Bundle_Name: wang
+
+Resume: 
+  Bundle_Name: wang
+Job: 
+  Bundle_Name: wang
+
+
+Prompt:
+  System_Prompt: ~
+  User_Prompt_Filepath: # this will be the list of all the prompt variants too
+    - perturbation_experiments\prompts\template\wang.txt
+  Trials_Per_Query: 1
+
+Model:
+  Model_Name: gpt-4o-mini
+  # Model_Name: gpt-4-0613
+  Temperature: 1.0
+  Max_Tokens: 4096
+
+Random_State: 42
+
+
+Noise_Floor: False

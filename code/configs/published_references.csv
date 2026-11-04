@@ -1,0 +1,5 @@
+framework,metric,value,model
+armstrong,score_difference,-0.2124,GPT-3.5
+armstrong,regression_coefficients,-0.277,GPT-3.5
+yin,selection_rate,0.51125
+yin,disparate_impact_ratio,0.9340223665
