@@ -7,9 +7,11 @@ import re
 from openai import OpenAI
 
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-VLLM_BASE_URL = 'http://172.24.67.98:8000/v1'
-VLLM_BASE_URL_24B = 'http://172.24.67.98:8001/v1' 
-VLLM_API_KEY = os.environ.get('VLLM_API_KEY', 'EMPTY')
+# VLLM_BASE_URL = os.environ.get('VLLM_BASE_URL', 'http://172.24.67.98:8000/v1')
+VLLM_BASE_URL='http://jagupard37:8000/v1'
+VLLM_BASE_URL_24B = os.environ.get('VLLM_BASE_URL_24B', 'http://172.24.67.98:8001/v1')
+VLLM_API_KEY = os.environ.get('VLLM_API_KEY', 'none')
+
 
 MODEL_NAME_ALIASES = {
     'mistral-7b-v0.2': 'mistralai/Mistral-7B-Instruct-v0.2',
@@ -26,10 +28,12 @@ MODEL_NAME_ALIASES = {
 VLLM_MODEL_ALIASES = set(MODEL_NAME_ALIASES.keys())
 
 class Model:
-    def __init__(self, model_name, temperature=0.7, max_tokens=1024):
+    def __init__(self, model_name, temperature=0.7, max_tokens=1024, vllm_base_url=None, vllm_api_key=None):
         self.original_model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.vllm_base_url_override = vllm_base_url
+        self.vllm_api_key_override = vllm_api_key
         self.backend = self._infer_backend(model_name)
         self.model_name = self._resolve_model_name(model_name)
         self.client = self._build_client()
@@ -54,6 +58,9 @@ class Model:
         return MODEL_NAME_ALIASES.get(lowered_name, name)
 
     def _get_vllm_base_url(self):
+        if self.vllm_base_url_override:
+            return self.vllm_base_url_override
+
         raw_name = (self.original_model_name or '').strip().lower()
         if raw_name.startswith('vllm:'):
             raw_name = raw_name.split(':', 1)[1].strip().lower()
@@ -72,12 +79,13 @@ class Model:
                 )
 
             base_url = self._get_vllm_base_url().rstrip('/')
+            api_key = self.vllm_api_key_override or VLLM_API_KEY
 
             try:
-                return OpenAI(api_key=VLLM_API_KEY, base_url=base_url)
+                return OpenAI(api_key=api_key, base_url=base_url)
             except Exception:
                 alt_url = re.sub(r':8000$', ':8001', base_url)
-                return OpenAI(api_key=VLLM_API_KEY, base_url=alt_url)
+                return OpenAI(api_key=api_key, base_url=alt_url)
 
         return OpenAI(api_key=OPENAI_API_KEY)
 

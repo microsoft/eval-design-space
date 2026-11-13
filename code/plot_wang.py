@@ -1,5 +1,8 @@
 from utils.paths import REPO_ROOT, repo_path
-from utils.plot_references import load_reproduced_reference, load_saved_wang_reference
+from utils.plot_references import (
+	load_reproduced_reference, load_saved_wang_reference, REPRODUCED_SETTING_LABEL,
+	reported_setting_label,
+)
 
 import os
 import ast
@@ -11,7 +14,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
-from utils.noise_floor import compute_framework_stats
+from utils.noise_floor import compute_default_framework_stats
 
 from utils.variables import metric_to_plot, model_to_plotname
 
@@ -139,7 +142,7 @@ def load_reproduced_setting_vlines(results_dir: str) -> List[Tuple[float, str, s
 		if pd.isna(value):
 			print(f"Skipping reproduced setting for {model}: invalid Score Differences value.")
 			continue
-		vlines.append((float(value), f'Reported Setting ({model})', color))
+		vlines.append((float(value), reported_setting_label(model), color))
 	return vlines
 
 
@@ -205,12 +208,7 @@ def plot_global_density(
 	# sample of up to 25 values using the project's helper.
 	if noise_floor is None:
 		# Compute noise-floor mean/std by sampling up to 25 values
-		current_dir= str(REPO_ROOT)
-		arm = '{}/results/armstrong_sampling_downsampling_analysis_original.csv'.format(current_dir)
-		wang = '{}/results/wang_sampling_downsampling_analysis_original.csv'.format(current_dir)
-		yin = '{}/results/yin_sampling_downsampling_analysis_original.csv'.format(current_dir)
-
-		noise_floor_results = compute_framework_stats(arm, wang, yin)
+		noise_floor_results = compute_default_framework_stats()
 		nf_n, nf_mean, nf_std = noise_floor_results['wang']['n'], noise_floor_results['wang']['mean'], noise_floor_results['wang']['std']
 		nf_mean = -1 * nf_mean
 		print(f"Noise floor (sampled n={nf_n}): mean={nf_mean}, std={nf_std}")
@@ -593,12 +591,7 @@ def main() -> None:
 	# Compute a reproducible sampled noise-floor early so downstream plotting
 	# uses the same sampled mean/std when the user did not explicitly supply them.
 	try:
-		current_dir=str(REPO_ROOT)
-		arm = '{}/results/armstrong_sampling_downsampling_analysis_original.csv'.format(current_dir)
-		wang = '{}/results/wang_sampling_downsampling_analysis_original.csv'.format(current_dir)
-		yin = '{}/results/yin_sampling_downsampling_analysis_original.csv'.format(current_dir)
-
-		noise_floor_results = compute_framework_stats(arm, wang, yin)
+		noise_floor_results = compute_default_framework_stats()
 		nf_n, nf_mean, nf_std = noise_floor_results['wang']['n'], noise_floor_results['wang']['mean'], noise_floor_results['wang']['std']
 		print(f"Noise floor (sampled n={nf_n}): mean={nf_mean}, std={nf_std}")
 		args.noise_floor_mean = -1 * nf_mean
@@ -613,12 +606,12 @@ def main() -> None:
 		vlines = None
 		if metric in {'score_difference', 'score_diff', 'wang_score_diff'}:
 			vlines = [
-				(load_saved_wang_reference(args.reproduced_settings_dir), 'Reproduced Setting', REF_LINE_BROWN),
+				(load_reproduced_reference('wang', metric, args.reference_input or args.input_file), REPRODUCED_SETTING_LABEL, REF_LINE_BROWN),
+				(load_saved_wang_reference(args.reproduced_settings_dir), reported_setting_label('GPT-4o'), REF_LINE_BROWN),
 			]
 			if args.reproduced_settings:
-				vlines = load_reproduced_setting_vlines(args.reproduced_settings_dir) + vlines
-			else:
-				vlines.insert(0, (load_reproduced_reference('wang', metric, args.reference_input or args.input_file), 'Reproduced Setting', REF_LINE_BROWN))
+				reported_lines = load_reproduced_setting_vlines(args.reproduced_settings_dir)
+				vlines.extend(line for line in reported_lines if line[1] != reported_setting_label('GPT-4o'))
 
 		metric_df = df[df['metric'] == metric].copy()
 		if metric_df.empty:

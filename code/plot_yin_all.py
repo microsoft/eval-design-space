@@ -1,5 +1,8 @@
 from utils.paths import REPO_ROOT, repo_path
-from utils.plot_references import load_published_reference, load_reproduced_reference
+from utils.plot_references import (
+    PUBLISHED_REFERENCES, load_published_reference, load_reproduced_reference,
+    REPRODUCED_SETTING_LABEL, reported_setting_label, published_setting_label,
+)
 
 import argparse
 import os
@@ -9,7 +12,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
-from utils.noise_floor import compute_framework_stats
+from utils.noise_floor import compute_default_framework_stats
 import seaborn as sns
 import ast
 
@@ -164,6 +167,22 @@ def benjamini_hochberg(pvals: List[float], q: float) -> List[bool]:
     return rejected.tolist()
 
 
+def load_reported_setting_vlines_from_published_references(
+    source: str = PUBLISHED_REFERENCES,
+    models: Optional[List[str]] = None,
+) -> List[Tuple[float, str, Any]]:
+    requested_models = list(REPORTED_SETTING_MODELS) if models is None else models
+    model_aliases = {"gpt-3.5-turbo": "GPT-3.5", "gpt-4": "GPT-4"}
+    color_map = plt.cm.tab10(np.linspace(0, 1, max(2, len(requested_models))))
+    out: List[Tuple[float, str, Any]] = []
+    for model, color in zip(requested_models, color_map):
+        csv_model = model_aliases.get(model.strip().lower(), model)
+        value = load_published_reference("yin", "selection_rate", source, model=csv_model)
+        out.append((value, reported_setting_label(model), color))
+        print(f"Reported setting ({model}) from {source}: selection_rate = {value:.6g}")
+    return out
+
+
 def load_reported_setting_vlines_from_performance_ranking(
     ranking_file: str,
     models: Optional[List[str]] = None,
@@ -223,7 +242,7 @@ def load_reported_setting_vlines_from_performance_ranking(
             continue
 
         reported_value = float(vals.sum()) / float(divide_by)
-        out.append((reported_value, f"Reported Setting ({model})", color))
+        out.append((reported_value, reported_setting_label(model), color))
         print(f"Reported setting ({model}) from {ranking_file}: {metric_col}_sum/{divide_by:g} = {reported_value:.6g}")
 
     return out
@@ -251,12 +270,7 @@ def plot_global_density(
     # sample of up to 25 values.
     if noise_floor is None:
         # Compute noise-floor mean/std by sampling up to 25 values
-        current_dir=str(REPO_ROOT)
-        arm = '{}/results/armstrong_sampling_downsampling_analysis_original.csv'.format(current_dir)
-        wang = '{}/results/wang_sampling_downsampling_analysis_original.csv'.format(current_dir)
-        yin = '{}/results/yin_sampling_downsampling_analysis_original.csv'.format(current_dir)
-
-        noise_floor_results = compute_framework_stats(arm, wang, yin)
+        noise_floor_results = compute_default_framework_stats()
         nf_n, nf_mean, nf_std = noise_floor_results['yin']['n'], noise_floor_results['yin']['mean'], noise_floor_results['yin']['std']
         print(f"Noise floor (sampled n={nf_n}): mean={nf_mean}, std={nf_std}")
 
@@ -1016,23 +1030,28 @@ def main() -> None:
     parser.add_argument("--noise_floor_std", type=float, default=None,
                        help="Standard deviation of the noise floor to display as shaded region.")
     parser.add_argument(
+        "--no_reported_settings",
+        action="store_true",
+        help="Hide reported-setting references while retaining reproduced references and the noise floor.",
+    )
+    parser.add_argument(
         "--reported_settings_file",
         type=str,
-        default=DEFAULT_PERFORMANCE_RANKING_FILE,
-        help="CSV used to compute model-specific reported setting lines for selection_rate.",
+        default=None,
+        help="Optional legacy performance_ranking.csv override; otherwise use configs/published_references.csv.",
     )
     parser.add_argument(
         "--reported_setting_models",
         type=str,
         nargs="*",
-        default=None,
-        help="Model names used for reported setting lines (default: gpt-3.5-turbo gpt-4).",
+        default=list(REPORTED_SETTING_MODELS),
+        help="Model names used for reported setting lines (default: gpt-3.5-turbo gpt-4; pass no names for the generic reference).",
     )
     parser.add_argument(
         "--reported_setting_divisor",
         type=float,
         default=4.0,
-        help="Divisor used after summing selection_rate for each reported-setting model.",
+        help="Divisor for the legacy --reported_settings_file only; published reference values are used directly.",
     )
                        
     args = parser.parse_args()
@@ -1159,12 +1178,7 @@ def main() -> None:
 
         clean_all = clean_values(candidate_vals)
         if clean_all:
-            current_dir=str(REPO_ROOT)
-            arm = '{}/results/armstrong_sampling_downsampling_analysis_original.csv'.format(current_dir)
-            wang = '{}/results/wang_sampling_downsampling_analysis_original.csv'.format(current_dir)
-            yin = '{}/results/yin_sampling_downsampling_analysis_original.csv'.format(current_dir)
-
-            noise_floor_results = compute_framework_stats(arm, wang, yin)
+            noise_floor_results = compute_default_framework_stats()
             nf_n, nf_mean, nf_std = noise_floor_results['yin']['n'], noise_floor_results['yin']['mean'], noise_floor_results['yin']['std']
             print(f"Noise floor (sampled n={nf_n}): mean={nf_mean}, std={nf_std}")
 
@@ -1192,24 +1206,30 @@ def main() -> None:
     out_root = repo_path(args.output_dir)
 
     if "selection_rate" in metrics_to_plot:
-        reported_model_vlines = load_reported_setting_vlines_from_performance_ranking(
-            ranking_file=args.reported_settings_file,
-            models=args.reported_setting_models,
-            metric_col="selection_rate",
-            divide_by=args.reported_setting_divisor,
-        )
-        if not args.reported_setting_models:
+        if args.no_reported_settings:
             reported_model_vlines = []
+        elif args.reported_setting_models and args.reported_settings_file:
+            reported_model_vlines = load_reported_setting_vlines_from_performance_ranking(
+                ranking_file=args.reported_settings_file,
+                models=args.reported_setting_models,
+                metric_col="selection_rate",
+                divide_by=args.reported_setting_divisor,
+            )
+        else:
+            reported_model_vlines = load_reported_setting_vlines_from_published_references(
+                models=args.reported_setting_models,
+            )
         metric_vlines["selection_rate"] = [
-            (load_reproduced_reference("yin", "selection_rate", args.reference_input or args.input_file), "Reproduced Setting", REF_LINE_BROWN),
-        ] + (reported_model_vlines if reported_model_vlines else [
-            (load_published_reference("yin", "selection_rate"), "Reported Setting", REF_LINE_BROWN)
+            (load_reproduced_reference("yin", "selection_rate", args.reference_input or args.input_file), REPRODUCED_SETTING_LABEL, REF_LINE_BROWN),
+        ] + ([] if args.no_reported_settings else reported_model_vlines if reported_model_vlines else [
+            (load_published_reference("yin", "selection_rate"), published_setting_label("yin", "selection_rate"), REF_LINE_BROWN)
         ])
     if "disparate_impact_ratio" in metrics_to_plot: 
         metric_vlines["disparate_impact_ratio"] = [
-            (load_reproduced_reference("yin", "disparate_impact_ratio", args.reference_input or args.input_file), "Reproduced Setting", REF_LINE_BROWN),
-            (load_published_reference("yin", "disparate_impact_ratio"), "Reported Setting", REF_LINE_BROWN)
-        ]
+            (load_reproduced_reference("yin", "disparate_impact_ratio", args.reference_input or args.input_file), REPRODUCED_SETTING_LABEL, REF_LINE_BROWN),
+        ] + ([] if args.no_reported_settings else [
+            (load_published_reference("yin", "disparate_impact_ratio"), published_setting_label("yin", "disparate_impact_ratio"), REF_LINE_BROWN)
+        ])
     
     ensure_dirs(args.output_dir)
 

@@ -3,7 +3,8 @@
 Provides a small CLI and functions to compute:
 - Original reproduced value (random_state == 42 when available)
 - Mean ± std, Mean 95% CI
-- Disagreement rate (value < 0 for armstrong/wang; selection_rate < 0.5 for yin)
+- Disagreement rate relative to the reproduced direction (threshold 0 for
+  armstrong/wang, 0.5 for yin; neutral is a separate direction)
 
 Reads the project's CSV outputs under `results/` by default.
 """
@@ -22,6 +23,10 @@ import re
 import numpy as np
 import os
 import pandas as pd
+
+DEFAULT_ARMSTRONG_CSV = os.path.join('results', 'armstrong_noise_floor.csv')
+DEFAULT_WANG_CSV = os.path.join('results', 'wang_noise_floor.csv')
+DEFAULT_YIN_CSV = os.path.join('results', 'yin_noise_floor.csv')
 
 
 def _extract_number_from_bracketed(x: Any) -> float:
@@ -97,7 +102,9 @@ def compute_framework_stats(
 			elif n > 0:
 				original = float(vals[0])
 
-			dis_rate = float(np.mean(sample_vals < 0)) if n > 0 else float('nan')
+			if n > 0 and not np.isfinite(original):
+				raise ValueError(f"{samp_path}: reproduced baseline must be finite to compute disagreement")
+			dis_rate = float(np.mean(np.sign(sample_vals) != np.sign(original))) if n > 0 else float('nan')
 
 			results[framework] = {
 				'original': original,
@@ -133,7 +140,9 @@ def compute_framework_stats(
 				if math.isnan(original_y) and n_y > 0:
 					original_y = float(sel_rates[0])
 
-				dis_rate_y = float(np.mean(sample_sel < 0.5)) if n_y > 0 else float('nan')
+				if n_y > 0 and not np.isfinite(original_y):
+					raise ValueError(f"{yin_csv}: reproduced baseline must be finite to compute disagreement")
+				dis_rate_y = float(np.mean(np.sign(sample_sel - 0.5) != np.sign(original_y - 0.5))) if n_y > 0 else float('nan')
 				results['yin'] = {
 					'original': original_y,
 					'mean': mean_y,
@@ -151,6 +160,10 @@ def compute_framework_stats(
 		return results
 
 
+def compute_default_framework_stats() -> Dict[str, Dict[str, Any]]:
+	return compute_framework_stats(DEFAULT_ARMSTRONG_CSV, DEFAULT_WANG_CSV, DEFAULT_YIN_CSV)
+
+
 def print_stats_table(stats: Dict[str, Dict[str, Any]]) -> None:
 	for fw in ('yin', 'wang', 'armstrong'):
 		r = stats.get(fw, {})
@@ -158,10 +171,7 @@ def print_stats_table(stats: Dict[str, Dict[str, Any]]) -> None:
 		print(f"Original Reproduced Value: {r.get('original')}")
 		print(f"Mean ± std: {r.get('mean')} ± {r.get('std')} (n={r.get('n')})")
 		print(f"Mean, 95% CI: {r.get('mean')} ± {r.get('ci')}")
-		if fw == 'yin':
-			print(f"Disagreement Rate (selection_rate < 0.5): {r.get('disagreement_rate')}")
-		else:
-			print(f"Disagreement Rate (value < 0): {r.get('disagreement_rate')}")
+		print(f"Disagreement Rate (direction differs from reproduced baseline): {r.get('disagreement_rate')}")
 		print()
 
 
@@ -170,11 +180,9 @@ if __name__ == '__main__':
 	# results CSVs.
 	# get current directory 
 	current_dir= str(REPO_ROOT)
-	arm = '{}/results/armstrong_sampling_downsampling_analysis_original.csv'.format(current_dir)
-	wang = '{}/results/wang_sampling_downsampling_analysis_original.csv'.format(current_dir)
-	yin = '{}/results/yin_sampling_downsampling_analysis_original.csv'.format(current_dir)
-
-	stats = compute_framework_stats(arm, wang, yin)
+	stats = compute_default_framework_stats()
+	stats['wang']['original'] = -stats['wang']['original']
+	stats['wang']['mean'] = -stats['wang']['mean']
 	# Save results as CSV: one row with columns 'armstrong', 'wang', 'yin'.
 	# Each cell contains the four metric values separated by ';':
 	# Reproduced Value; Mean ± SD; Mean, 95% CI (SE); Disagreement Rate (Sign Flip Frequency)
@@ -214,4 +222,3 @@ if __name__ == '__main__':
 	print(f"Saved noise-floor results to: {out_path}")
 
 	print_stats_table(stats)
-

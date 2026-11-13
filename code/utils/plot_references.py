@@ -10,6 +10,26 @@ from utils.paths import repo_path
 
 
 PUBLISHED_REFERENCES = "configs/published_references.csv"
+REPRODUCED_SETTING_LABEL = "Reproduced Setting (GPT-4o-mini)"
+
+
+def reported_setting_label(model: str) -> str:
+    aliases = {"gpt-3.5-turbo": "GPT-3.5", "gpt-3.5": "GPT-3.5",
+               "gpt-4": "GPT-4", "gpt-4o": "GPT-4o"}
+    name = aliases.get(model.strip().lower(), model.strip())
+    return f"Reported Setting ({name})"
+
+
+def published_setting_label(framework: str, metric: str) -> str:
+    df = pd.read_csv(repo_path(PUBLISHED_REFERENCES))
+    rows = df[df["framework"].eq(framework) & df["metric"].eq(canonical_metric(metric))]
+    if len(rows) > 1:
+        rows = rows[rows["model"].fillna("").astype(str).str.strip().eq("")]
+    if len(rows) != 1:
+        raise ValueError(f"Expected one published {framework}/{metric} reference")
+    model = rows.iloc[0].get("model")
+    return reported_setting_label(str(model) if pd.notna(model) and str(model).strip()
+                                  else "model unspecified")
 
 
 def canonical_metric(metric: str) -> str:
@@ -125,10 +145,19 @@ def load_saved_wang_reference(
 
 def load_published_reference(
     framework: str, metric: str, source: str = PUBLISHED_REFERENCES,
+    model: str | None = None,
 ) -> float:
     df = pd.read_csv(repo_path(source))
     rows = df[df["framework"].eq(framework) & df["metric"].eq(canonical_metric(metric))]
+    if model is not None:
+        if "model" not in rows:
+            raise ValueError(f"{source}: published references have no model column")
+        model_names = rows["model"].fillna("").astype(str).str.strip().str.casefold()
+        rows = rows[model_names.eq(model.strip().casefold())]
+    elif len(rows) > 1 and "model" in rows:
+        rows = rows[rows["model"].fillna("").astype(str).str.strip().eq("")]
     if len(rows) != 1:
-        raise ValueError(f"{source}: expected one published {framework}/{metric} reference")
+        suffix = f" for model {model}" if model is not None else ""
+        raise ValueError(f"{source}: expected one published {framework}/{metric} reference{suffix}")
     row = rows.iloc[0]
     return _scalar(row["value"], source)

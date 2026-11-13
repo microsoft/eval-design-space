@@ -6,10 +6,10 @@ MODELS = {
     # # "mistral-small-24b": "mistralai/Mistral-Small-24B-Instruct-2501",
     # "meta-llama-3.3-70b-instruct-turbo": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
 
-    # "mistral-small-24b": 'nmeist/evaldims-mistral24b',
-    "mistral-7b-v0.3": 'nmeist/evaldims',
-    "meta-llama-3.1-8b-instruct-turbo": 'nmeist/evaldims-llama',
-    # "meta-llama-3.3-70b-instruct-turbo": 'nmeist/evaldims-llama70b',
+    "mistral-7b-v0.3": 'tatsu/evaldims',
+    "meta-llama-3.1-8b-instruct-turbo": 'tatsu/evaldims-llama',
+    "meta-llama-3.3-70b-instruct-turbo": 'tatsu/evaldims-llama70b',
+    # "mistral-small-24b": 'tatsu/evaldims-mistral24b',
 }
 
 MODELS_GPT = {
@@ -29,12 +29,14 @@ model_to_plotname= {
     "gpt-4o-2024-11-20": "GPT-4o",
     "mistral-7b-v0.2": "Mistral-7B-v0.2",
 	"mistral-7b-v0.3": "Mistral-7B-v0.3",
+    "mistral-7b-v0.3": "Mistral-7B-Instruct-v0.3",
 	
 }
 
 
 # NAMES = ['armstrong', 'rozado', 'wen', 'seshadri', 'karvonen', 'zollo', 'yin', 'gaeb', 'lippens']
-NAMES = ['armstrong', 'rozado', 'wen', 'wang', 'karvonen', 'zollo', 'yin', 'gaeb', 'lippens']
+# NAMES = ['armstrong', 'rozado', 'wen', 'wang', 'karvonen', 'zollo', 'yin', 'gaeb', 'lippens']
+NAMES = ['lippens']
 JOBS = ['armstrong', 'rozado', 'wen', 'wang', 'karvonen', 'zollo', 'yin']
 
 armtrong_model_order = {

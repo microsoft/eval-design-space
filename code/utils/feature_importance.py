@@ -571,7 +571,7 @@ def permutation_feature_importance(df, y, args, drops, ablation='none'):
     print(f"Permutation importances saved to '{importance_file}'")
 
     # Horizontal plot: decrease in R² on x, dimensions on y
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(10, 5), constrained_layout=True)
     y_pos = np.arange(len(display_names))
     dim_colors = {'name': 'C0', 'job': 'C1', 'model': 'C2', RANDOM_FEATURE: 'gray'}
     colors = [dim_colors.get(d, 'gray') for d in display_names]
@@ -579,15 +579,15 @@ def permutation_feature_importance(df, y, args, drops, ablation='none'):
         ax.errorbar(m, y_p, xerr=s, fmt='o', color=color, ecolor='gray', capsize=3)
     ax.axvline(x=0, color='red', linestyle='--', linewidth=1.5, alpha=0.5)
     ax.set_yticks(y_pos)
-    ax.set_yticklabels([d[0].upper() + d[1:] for d in display_names])
+    dimension_labels = {'name': 'Social group indicator', 'job': 'Job-resume'}
+    ax.set_yticklabels([dimension_labels.get(d, d[0].upper() + d[1:]) for d in display_names])
     ax.invert_yaxis()
     ax.set_xlabel('Decrease in R²')
-    ax.set_title('Permutation Importances (test set)')
+    ax.set_title('Permutation Importances (test set)', fontsize=22, pad=12)
     ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     ax.grid(True, alpha=0.3, axis='x')
-    plt.tight_layout()
     importance_plot_file = f"results/meta/{args.exp_framework}/permutation_importance_plot_ablation_{ablation}.png"
-    plt.savefig(repo_path(importance_plot_file), dpi=150)
+    fig.savefig(repo_path(importance_plot_file), dpi=150, bbox_inches='tight', pad_inches=0.3)
     print(f"Permutation importance plot saved as '{importance_plot_file}'")
     plt.close()
 
@@ -678,7 +678,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default=None, help="Input CSV file path")
     parser.add_argument("--exp_framework", default="yin", choices=["yin", "wang", "armstrong"], help="Experimental framework to analyze")
-    parser.add_argument("--metric", default="selection_rate") # regression_coefficients, score_difference
+    parser.add_argument("--metric", default=None) # regression_coefficients, score_difference
     parser.add_argument("--holdout", type=float, default=0.1, help="Deprecated; retained for CLI compatibility and ignored by the current full-dataset CV workflow")
     parser.add_argument("--random-state", type=int, default=0, help="Random seed")
     parser.add_argument("--n-splits", type=int, default=5, help="Number of CV folds (default 5)")
@@ -690,7 +690,18 @@ def main():
     parser.add_argument("--quantile", type=float, default=0.5, help="Target quantile for --ablation quantile")
     parser.add_argument("--feature_importance", action="store_true", help="Also run permutation feature importance over dimensions (name/job/model/random_num) on the held-out folds")
     parser.add_argument("--n-repeats", type=int, default=30, help="Number of shuffles per dimension for --feature_importance (default 30)")
+    parser.add_argument("--compare-models", action="store_true", help="Compare OLS, Elastic Net with interactions, and CatBoost permutation importance")
+    parser.add_argument("--inner-splits", type=int, default=3, help="Inner tuning folds for --compare-models")
+    parser.add_argument("--n-jobs", type=int, default=1, help="Grid-search workers for --compare-models")
     args = parser.parse_args()
+
+    if args.compare_models:
+        if args.ablation != 'none':
+            parser.error('--compare-models currently supports only --ablation none')
+        from utils.permutation_importance_comparison import run_comparison
+        run_comparison(args)
+        return
+    args.metric = args.metric or 'selection_rate'
 
     include_interactions = args.model_spec == 'interactions'
     print(f"Model specification: {args.model_spec}")
@@ -891,6 +902,7 @@ def main():
             coef_index = [i for i in full_index if i != 'const' and not i.startswith('int_')]
         else:
             coef_index = [i for i in full_index if i != 'const']
+        coef_index = [c for c in coef_index if c not in drops]
         est_no_const = est.reindex(coef_index)
         lower_no_const = lower.reindex(coef_index)
         upper_no_const = upper.reindex(coef_index)
@@ -950,9 +962,9 @@ def main():
         from matplotlib.patches import Patch
         legend_elements = []
         if any(c.startswith('name_') for c in coef_index):
-            legend_elements.append(Patch(facecolor='C0', label='Name'))
+            legend_elements.append(Patch(facecolor='C0', label='Social group indicator'))
         if any(c.startswith('job_') for c in coef_index):
-            legend_elements.append(Patch(facecolor='C1', label='Job'))
+            legend_elements.append(Patch(facecolor='C1', label='Job-resume'))
         if any(c.startswith('model_') for c in coef_index):
             legend_elements.append(Patch(facecolor='C2', label='Model'))
         if any(c.startswith('int_') for c in coef_index):

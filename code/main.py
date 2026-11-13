@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
 
 '''
-python main.py --base_config_path configs/base_yin.yaml --name gaeb --job armstrong --model gpt-4o-mini --swap_jobdescription
-python main.py --base_config_path configs/base_yin.yaml --name gaeb --job yin --model gpt-4o-mini --swap_jobdescription
-python main.py --base_config_path configs/base_yin.yaml --name gaeb --job yin --model gpt-4o-mini --swap_jobdescription
+python main.py --base_config_path /nlp/scr/nmeist/EvalDims/configs/base_yin.yaml --name lippens --job armstrong --model mistral-24b
+python main.py --base_config_path /nlp/scr/nmeist/EvalDims/configs/base_yin.yaml --name gaeb --job yin --model gpt-4o-mini --swap_jobdescription
+python main.py --base_config_path /nlp/scr/nmeist/EvalDims/configs/base_yin.yaml --name gaeb --job yin --model gpt-4o-mini --swap_jobdescription
 '''

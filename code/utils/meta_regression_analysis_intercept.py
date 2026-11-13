@@ -19,6 +19,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from matplotlib.ticker import FormatStrFormatter
 import statsmodels.api as sm
 from statistics import NormalDist
@@ -386,7 +387,7 @@ def cross_validate(X, y, X_cols, df=None, color_col=None, n_splits=5, random_sta
 
 
 def plot(all_y_test, all_pred_test, all_color_test, r2, rmse, args, ablation='none'):
-    # Scatter plot with line of best fit, optionally colored by category
+    # Scatter plot with an identity line, optionally colored by category.
     fig, ax = plt.subplots(figsize=(9, 7))
     
     if args.color_by != 'none':
@@ -401,10 +402,7 @@ def plot(all_y_test, all_pred_test, all_color_test, r2, rmse, args, ablation='no
         
         # Track which values have been added to legend
         seen = set()
-        fold_colors = plt.cm.tab10(np.linspace(0, 1, len(all_y_test)))
-        all_slopes, all_intercepts = [], []
-        x_min_global, x_max_global = np.inf, -np.inf
-        for fold_i, (y_test_fold, pred_test_fold, color_fold) in enumerate(zip(all_y_test, all_pred_test, all_color_test)):
+        for y_test_fold, pred_test_fold, color_fold in zip(all_y_test, all_pred_test, all_color_test):
             for yval, pval, cval in zip(y_test_fold, pred_test_fold, color_fold):
                 if cval is None or cval not in color_map:
                     ax.scatter(yval, pval, alpha=0.6, s=30, color='lightgray', label='_nolegend_')
@@ -415,42 +413,25 @@ def plot(all_y_test, all_pred_test, all_color_test, r2, rmse, args, ablation='no
                     label = display_cval if display_cval not in seen else '_nolegend_'
                     ax.scatter(yval, pval, alpha=0.6, s=30, color=color_map[cval], label=label)
                     seen.add(display_cval)
-            # Collect fold fit for average line
-            if len(y_test_fold) > 1:
-                z = np.polyfit(y_test_fold, pred_test_fold, 1)
-                all_slopes.append(z[0])
-                all_intercepts.append(z[1])
-                x_min_global = min(x_min_global, float(y_test_fold.min()))
-                x_max_global = max(x_max_global, float(y_test_fold.max()))
-        # Plot the identity line y = x over the observed x range (diagonal)
-        if x_min_global <= x_max_global:
-            x_line = np.linspace(x_min_global, x_max_global, 100)
-            ax.plot(x_line, x_line, color='black', linestyle='--', linewidth=2, label='y = x')
     else:
         fold_colors = plt.cm.tab10(np.linspace(0, 1, len(all_y_test)))
-        all_slopes, all_intercepts = [], []
-        x_min_global, x_max_global = np.inf, -np.inf
         for i, (y_test_fold, pred_test_fold) in enumerate(zip(all_y_test, all_pred_test)):
             color = fold_colors[i]
             ax.scatter(y_test_fold, pred_test_fold, alpha=0.6, s=30, color=color, label=f'Fold {i+1}')
-            if len(y_test_fold) > 1:
-                z = np.polyfit(y_test_fold, pred_test_fold, 1)
-                all_slopes.append(z[0])
-                all_intercepts.append(z[1])
-                x_min_global = min(x_min_global, float(y_test_fold.min()))
-                x_max_global = max(x_max_global, float(y_test_fold.max()))
-        # Plot the identity line y = x over the observed x range (diagonal)
-        if x_min_global <= x_max_global:
-            x_line = np.linspace(x_min_global, x_max_global, 100)
-            ax.plot(x_line, x_line, color='black', linestyle='--', linewidth=2, label=f'y = x \n(R² = {r2:.3f})')
+    x_limits, y_limits = ax.get_xlim(), ax.get_ylim()
+    ax.axline((0, 0), slope=1, color='black', linestyle='--', linewidth=2,
+              label='Identity Line')
+    ax.set_xlim(x_limits)
+    ax.set_ylim(y_limits)
     
     ax.set_xlabel('Observed')
     ax.set_ylabel('Predicted')
-    color_by_label = f"colored by {args.color_by}" if args.color_by != 'none' else "by fold"
     ax.set_title('Observed vs Predicted Selection Rate')
 
-    # ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    ax.legend(loc='upper left')
+    handles, labels = ax.get_legend_handles_labels()
+    handles.append(Line2D([], [], linestyle='none', marker=''))
+    labels.append(f'$R^2 = {r2:.3f}$')
+    ax.legend(handles, labels, loc='upper left')
     ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     ax.grid(True, alpha=0.3)
@@ -460,6 +441,18 @@ def plot(all_y_test, all_pred_test, all_color_test, r2, rmse, args, ablation='no
     plt.savefig(repo_path(plot_file), dpi=100, bbox_inches='tight')
     print(f"Plot saved as '{plot_file}'")
     plt.close()
+
+
+def coefficient_display_label(coef_name):
+    for prefix in ('name_', 'job_'):
+        if coef_name.startswith(prefix):
+            author = coef_name[len(prefix):].capitalize()
+            return f'{author} et al.'
+    if coef_name.startswith('model_'):
+        label = coef_name[len('model_'):].replace('-instruct-turbo', '').replace('instruct-turbo', '')
+    else:
+        label = coef_name
+    return label[0].upper() + label[1:] if label else label
 
 
 def framework_column_map(exp_framework):
@@ -672,7 +665,7 @@ def permutation_feature_importance(df, y, args, drops, ablation='none'):
     print(f"Permutation importances saved to '{importance_file}'")
 
     # Horizontal plot: decrease in R² on x, dimensions on y
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(10, 5), constrained_layout=True)
     y_pos = np.arange(len(display_names))
     dim_colors = {'name': 'C0', 'job': 'C1', 'model': 'C2', RANDOM_FEATURE: 'gray'}
     colors = [dim_colors.get(d, 'gray') for d in display_names]
@@ -680,15 +673,15 @@ def permutation_feature_importance(df, y, args, drops, ablation='none'):
         ax.errorbar(m, y_p, xerr=s, fmt='o', color=color, ecolor='gray', capsize=3)
     ax.axvline(x=0, color='red', linestyle='--', linewidth=1.5, alpha=0.5)
     ax.set_yticks(y_pos)
-    ax.set_yticklabels([d[0].upper() + d[1:] for d in display_names])
+    dimension_labels = {'name': 'Social group indicator', 'job': 'Job-resume'}
+    ax.set_yticklabels([dimension_labels.get(d, d[0].upper() + d[1:]) for d in display_names])
     ax.invert_yaxis()
     ax.set_xlabel('Decrease in R²')
-    ax.set_title('Permutation Importances (test set)')
+    ax.set_title('Permutation Importances (test set)', fontsize=22, pad=12)
     ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     ax.grid(True, alpha=0.3, axis='x')
-    plt.tight_layout()
     importance_plot_file = f"results/meta/{args.exp_framework}/permutation_importance_plot_ablation_{ablation}_{args.model_spec}.png"
-    plt.savefig(repo_path(importance_plot_file), dpi=150)
+    fig.savefig(repo_path(importance_plot_file), dpi=150, bbox_inches='tight', pad_inches=0.3)
     print(f"Permutation importance plot saved as '{importance_plot_file}'")
     plt.close()
 
@@ -872,7 +865,7 @@ def main():
     parser.add_argument("--quantile", type=float, default=0.5, help="Target quantile for --ablation quantile")
     parser.add_argument("--feature_importance", action="store_true", default=False, help="Compute permutation feature importance after fitting")
     parser.add_argument("--n-repeats", type=int, default=30, help="Number of shuffles per dimension for --feature_importance (default 30)")
-    parser.add_argument("--remove_reference_cllass", action="store_true", default=False, help="Remove reference-level coefficients from the coefficient plot (do not plot reference class)")
+    parser.add_argument("--remove_reference_cllass", action="store_true", default=False, help="Legacy option; reference-level coefficients are now always omitted from the plot")
 
     args = parser.parse_args()
 
@@ -1091,11 +1084,7 @@ def main():
             coef_index = [i for i in full_index if i != 'const' and not i.startswith('int_')]
         else:
             coef_index = [i for i in full_index if i != 'const']
-        # Optionally remove the reference-level coefficients from the plot
-        if getattr(args, 'remove_reference_cllass', False):
-            # `drops` is a tuple (drop_name, drop_job, drop_model) containing names like 'name_yin'
-            refs_to_remove = list(drops)
-            coef_index = [c for c in coef_index if c not in refs_to_remove]
+        coef_index = [c for c in coef_index if c not in drops]
         est_no_const = est.reindex(coef_index)
         lower_no_const = lower.reindex(coef_index)
         upper_no_const = upper.reindex(coef_index)
@@ -1127,21 +1116,7 @@ def main():
         # Add vertical line at x=0
         ax.axvline(x=0, color='red', linestyle='--', linewidth=1.5, alpha=0.5, label='Zero')
 
-        display_coef_labels = []
-        for coef_name in coef_index:
-            if coef_name.startswith('name_'):
-                label = coef_name[len('name_'):]
-            elif coef_name.startswith('job_'):
-                label = coef_name[len('job_'):]
-            elif coef_name.startswith('model_'):
-                label = coef_name[len('model_'):]
-                label = label.replace('-instruct-turbo', '').replace('instruct-turbo', '')
-            else:
-                label = coef_name
-
-            if label:
-                label = label[0].upper() + label[1:]
-            display_coef_labels.append(label)
+        display_coef_labels = [coefficient_display_label(name) for name in coef_index]
         
         ax.set_yticks(y_pos)
         ax.set_yticklabels(display_coef_labels)
@@ -1155,15 +1130,15 @@ def main():
         from matplotlib.patches import Patch
         legend_elements = []
         if any(c.startswith('name_') for c in coef_index):
-            legend_elements.append(Patch(facecolor='C0', label='Name'))
+            legend_elements.append(Patch(facecolor='C0', label='Social group indicator'))
         if any(c.startswith('job_') for c in coef_index):
-            legend_elements.append(Patch(facecolor='C1', label='Job'))
+            legend_elements.append(Patch(facecolor='C1', label='Job-resume'))
         if any(c.startswith('model_') for c in coef_index):
             legend_elements.append(Patch(facecolor='C2', label='Model'))
         if any(c.startswith('int_') for c in coef_index):
             legend_elements.append(Patch(facecolor='C3', label='Interaction'))
         if legend_elements:
-            ax.legend(handles=legend_elements, loc='best')
+            ax.legend(handles=legend_elements, loc='lower left', fontsize=11)
         plt.tight_layout()
         os.makedirs(repo_path(f'results/meta/{args.exp_framework}'), exist_ok=True)
         coef_plot_file = f"results/meta/{args.exp_framework}/coef_ci_plot_intercept_modelspec_{args.model_spec}_ablation_{ablation_name}.png"

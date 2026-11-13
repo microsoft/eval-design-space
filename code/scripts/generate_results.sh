@@ -1,12 +1,37 @@
 #!/bin/bash
 
-set -u
+set -euo pipefail
 
-SESSION="gpt_5o_wang"
-PROJECT_DIR="/nlp/scr/nmeist/EvalDims"
+SESSION="generate_results"
+PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_DIR"
 
+# Each variant has its own output location so parallel runs cannot overwrite it.
+# --holdout is deprecated; the two Yin regression runs are retained separately.
+# interactions is a model specification, not an ablation.
 
 commands=(
+    "python utils/plot_relative.py --no_wang_models --output results/figs/relative/relative_violin_no_wang_models.png"
+    "python utils/plot_male_preference_bar.py"
+    "python utils/swapped_module_results.py"
+    "python utils/meta_regression_analysis_intercept.py --exp_framework yin --metric selection_rate --model_spec interactions
+    "python plot_armstrong.py --output_dir results/figs/armstrong/default"
+    "python plot_yin_all.py --output_dir results/figs/yin/default"
+    "python plot_wang.py --output_dir results/figs/wang/default"
+    "python plot_armstrong.py --metric regression_coefficients --split_by all --output_dir results/figs/armstrong/regression_coefficients_all"
+    "python plot_yin_all.py --metric selection_rate --split_by all --reported_setting_models gpt-3.5-turbo gpt-4 --output_dir results/figs/yin/reported_settings"
+    "python utils/noise_floor.py"
+    "python utils/plot_relative.py --output results/figs/relative/relative_violin.png"
+    "python plot_wang.py --metric score_difference --split_by all --reproduced_settings --full_width --output_dir results/figs/wang/reproduced_settings_full_width"
+    "python utils/meta_regression_predictors.py --exp_framework yin"
+    "python utils/meta_regression_predictors.py --exp_framework armstrong"
+    "python utils/meta_regression_predictors.py --exp_framework wang"
+    "python utils/feature_importance.py --exp_framework yin --metric selection_rate --model_spec main --ablation none --feature_importance"
+    "python utils/feature_importance.py --exp_framework yin --metric selection_rate --model_spec interactions --ablation none
+    "python utils/feature_importance.py --exp_framework wang --metric score_difference --model_spec main --ablation all"
+    "python utils/feature_importance.py --exp_framework wang --metric score_difference --model_spec interactions --ablation all"
+    "python utils/feature_importance.py --exp_framework armstrong --metric regression_coefficients --model_spec main --ablation all"
+    "python utils/feature_importance.py --exp_framework armstrong --metric regression_coefficients --model_spec interactions --ablation all"
     # python main.py --name armstrong --job armstrong --model gpt-3.5-turbo-0125 --base_config_path configs/base_armstrong.yaml
     # "python main.py --name seshadri --job wen --model Mistral-7B-Instruct-v0.3 --base_config_path configs/base_wang.yaml"
     # "python main.py --name seshadri --job rozado --model Mistral-7B-Instruct-v0.3 --base_config_path configs/base_wang.yaml"
@@ -90,11 +115,12 @@ for ((i=0; i<total; i++)); do
     if [ -z "${window_cmds[$w]}" ]; then
         window_cmds[$w]="${commands[$i]}"
     else
-        window_cmds[$w]="${window_cmds[$w]}; ${commands[$i]}"
+        window_cmds[$w]="${window_cmds[$w]} && ${commands[$i]}"
     fi
 done
 
-tmux new-session -d -s $SESSION
+tmux new-session -d -s "$SESSION"
+printf -v quoted_project_dir '%q' "$PROJECT_DIR"
 
 for ((w=0; w<window_count; w++)); do
     cmd="${window_cmds[$w]}"
@@ -106,7 +132,7 @@ for ((w=0; w<window_count; w++)); do
         tmux new-window -t $SESSION -n "$win_name"
     fi
 
-    tmux send-keys -t $SESSION:$win_name "cd ${PROJECT_DIR} && ${cmd}" C-m
+    tmux send-keys -t "$SESSION:$win_name" "cd ${quoted_project_dir} && ${cmd}" C-m
 done
 
 echo "Launched $total commands across $window_count tmux windows."
@@ -194,4 +220,3 @@ echo "Attach with: tmux attach -t $SESSION"
 # "python main.py --name seshadri --job zollo --model Mistral-7B-Instruct-v0.2"
 # "python main.py --name seshadri --job yin --model Mistral-7B-Instruct-v0.2"
 # "python main.py --name seshadri --job karvonen --model Mistral-7B-Instruct-v0.2"
-

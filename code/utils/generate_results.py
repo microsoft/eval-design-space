@@ -69,7 +69,6 @@ def generate_armstrong(config):
     # Prepare the output dataframe
     output_cols = ["role", "prompt", "variable", "value", "race", "gender", "raceBLS", "genderBLS", "name"]
     results = []
-
     for prompt_type in ['interview']:
         for this_race in names.keys():
             for idx in range(len(names[this_race])):
@@ -163,6 +162,9 @@ def generate_yin(config):
     demos2names = names.get_names(config['Name']['Bundle_Name'], config['experimental_framework'])
     jobs, job_descriptions, resumes = jobs.get_jobs_resumes(id=config['Job']['Bundle_Name'], exp_framework=config['experimental_framework'])
     model = Model(config['Model']['Model_Name'], 1, 500)
+
+    # reverse the order of the jobs list so that the last job is processed first. This is to ensure that the first job processed is the one that will be used for the final evaluation.
+    jobs = list(reversed(jobs))
 
     random.seed(random_state)
     print(f"generate_yin using random_state: {random_state}, loop_random_state: {loop_random_state}")

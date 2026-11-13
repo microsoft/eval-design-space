@@ -567,7 +567,7 @@ def load_yin_values(input_file: str, metric: str) -> List[float]:
         df = df[mask].copy()
 
     if "name_bundle" in df.columns:
-        df = df[df["name_bundle"] != "wang"].copy()
+        df = df[df["name_bundle"] != "seshadri"].copy()
 
     dedupe_columns = [
         column

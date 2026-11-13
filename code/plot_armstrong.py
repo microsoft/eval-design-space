@@ -1,5 +1,8 @@
 from utils.paths import REPO_ROOT, repo_path
-from utils.plot_references import load_published_reference, load_reproduced_reference
+from utils.plot_references import (
+    load_published_reference, load_reproduced_reference, REPRODUCED_SETTING_LABEL,
+    published_setting_label,
+)
 
 import argparse
 import ast
@@ -11,7 +14,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from scipy.stats import gaussian_kde
-from utils.noise_floor import compute_framework_stats
+from utils.noise_floor import compute_default_framework_stats
 
 
 from utils.variables import colors, metric_to_plot, linestyles, model_to_plotname
@@ -371,11 +374,11 @@ def plot_global_density(values: List[float], metric: str, out_path: str, split_b
         plt.xlabel(metric_to_plot[metric])
         plt.ylabel("Probability Density")
         plt.grid(axis='y', alpha=0.3)
-        # if vlines:
-        #     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        if vlines:
+            plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.tight_layout()
         final_path = add_pval_suffix_to_path(out_path, p_value_threshold)
-        plt.savefig(repo_path(final_path))
+        plt.savefig(repo_path(final_path), bbox_inches='tight', pad_inches=0.2)
         plt.close()
     else:
         # Fallback to histogram
@@ -427,7 +430,7 @@ def plot_global_density(values: List[float], metric: str, out_path: str, split_b
         plt.tight_layout()
         hist_path = out_path.replace('density', 'histogram')
         final_path = add_pval_suffix_to_path(hist_path, p_value_threshold)
-        plt.savefig(repo_path(final_path))
+        plt.savefig(repo_path(final_path), bbox_inches='tight', pad_inches=0.2)
         plt.close()
 
 
@@ -468,7 +471,7 @@ def plot_global_histogram(values: List[float], metric: str, out_path: str, vline
         plt.legend(loc='best')
     plt.tight_layout()
     final_path = add_pval_suffix_to_path(out_path, p_value_threshold)
-    plt.savefig(repo_path(final_path))
+    plt.savefig(repo_path(final_path), bbox_inches='tight', pad_inches=0.2)
     plt.close()
 
 
@@ -631,7 +634,7 @@ def plot_split_density_cdf(
         hist_path = f"{out_root}/{metric_to_plot[metric]}_combined_histogram_by_{split_type}.png"
         hist_path = add_pval_suffix_to_path(hist_path, p_value_threshold)
         print(f"Saving combined histogram plot to {hist_path}")
-        fig_hist.savefig(repo_path(hist_path))
+        fig_hist.savefig(repo_path(hist_path), bbox_inches='tight', pad_inches=0.2)
         
         # Save Density Plot
         ax_den.set_title(f'Comparison of {metric_to_plot[metric]} Density by {split_type.capitalize()}')
@@ -646,7 +649,7 @@ def plot_split_density_cdf(
         den_path = f"{out_root}/{metric_to_plot[metric]}_combined_density_by_{split_type}.png"
         den_path = add_pval_suffix_to_path(den_path, p_value_threshold)
         print(f"Saving combined density plot to {den_path}")
-        fig_den.savefig(repo_path(den_path))
+        fig_den.savefig(repo_path(den_path), bbox_inches='tight', pad_inches=0.2)
         
         # Save CDF Plot
         ax_cdf.set_title(f'Comparison of {metric_to_plot[metric]} CDF by {split_type.capitalize()}')
@@ -661,7 +664,7 @@ def plot_split_density_cdf(
         cdf_path = f"{out_root}/{metric_to_plot[metric]}_combined_cdf_by_{split_type}.png"
         cdf_path = add_pval_suffix_to_path(cdf_path, p_value_threshold)
         print(f"Saving combined CDF plot to {cdf_path}")
-        fig_cdf.savefig(repo_path(cdf_path))
+        fig_cdf.savefig(repo_path(cdf_path), bbox_inches='tight', pad_inches=0.2)
     else:
         print(f"No {split_type}s had enough data to plot.")
     
@@ -703,13 +706,13 @@ def benjamini_hochberg(pvals: List[float], q: float) -> List[bool]:
 def get_reproduced_value_from_vlines(vlines: Optional[List[Tuple[float, str, str]]]) -> Optional[float]:
     """Return the numeric reproduced value from a vlines list.
 
-    Looks for an entry whose label contains 'Reproduced Armstrong' and returns its value.
+    Looks for an entry whose label identifies the reproduced setting.
     Falls back to the first numeric entry if no explicit reproduced label is found.
     """
     if not vlines:
         return None
     for val, label, _ in vlines:
-        if isinstance(label, str) and "Reproduced Armstrong" in label:
+        if isinstance(label, str) and label.startswith("Reproduced"):
             try:
                 return float(val)
             except Exception:
@@ -808,7 +811,7 @@ def plot_boxwhisker_plot(
     save_path = os.path.join(repo_path(out_root), f"{metric}_boxwhisker_by_{split_type}.png")
     final_path = add_pval_suffix_to_path(save_path, p_value_threshold)
     print(f"Saving box-and-whisker plot to {final_path}")
-    fig.savefig(repo_path(final_path), dpi=150)
+    fig.savefig(repo_path(final_path), dpi=150, bbox_inches='tight', pad_inches=0.2)
     plt.close(fig)
 
 
@@ -821,6 +824,7 @@ def main() -> None:
     parser.add_argument("--analysis", type=str, default="original", help="Analysis to perform.")
     parser.add_argument("--exp_framework", type=str, default="armstrong", help="Experiment framework to use.")
     parser.add_argument("--model", type=str, default="all", help="Model to use (or 'all').")
+    parser.add_argument("--output_dir", help="Output directory; defaults to results/figs/FRAMEWORK/MODEL.")
     parser.add_argument("--metric", type=str, default="regression_coefficients", help="Metric to plot.")
     parser.add_argument("--reference_input", help="Baseline CSV (defaults to the unfiltered input CSV).")
     parser.add_argument("--split_by", type=str, default="all", 
@@ -857,7 +861,7 @@ def main() -> None:
     
     # filter out all the values where df['Names']== wang
     df = df[df['Names'] != 'seshadri']
-    df = df[df['Random_State'] != 42.0]
+    df = df[df['Random_State'] == 42.0]
 
     # Parse columns
     if "Result_Vector" in df.columns:
@@ -882,7 +886,7 @@ def main() -> None:
     col_labels = ["armstrong", "rozado", "wen", "wang", "karvonen", "zollo", "yin"]
 
     # Output dirs
-    out_root = f"results/figs/{args.exp_framework}/{args.model}"
+    out_root = args.output_dir or f"results/figs/{args.exp_framework}/{args.model}"
     ensure_dirs(f"results/figs/{args.exp_framework}", out_root)
 
     # Build lookup table for grid logic
@@ -960,16 +964,16 @@ def main() -> None:
     if metric == "score_difference":
         vlines = [
             # (0.0, "No Preference"),
-            (load_reproduced_reference("armstrong", metric, args.reference_input or in_path), "Reproduced Armstrong et. al\nSetting (GPT-4o-mini)", REF_LINE_BROWN),
-            (load_published_reference("armstrong", metric), "Reported Armstrong et. al\nSetting (GPT-3.5)", REF_LINE_BROWN)
+            (load_reproduced_reference("armstrong", metric, args.reference_input or in_path), REPRODUCED_SETTING_LABEL, REF_LINE_BROWN),
+            (load_published_reference("armstrong", metric), published_setting_label("armstrong", metric), REF_LINE_BROWN)
         ]
         model_vlines = {
         }
     elif metric == "regression_coefficients":
         vlines = [
             # (0.0, "No Preference"),
-            (load_reproduced_reference("armstrong", metric, args.reference_input or in_path), "Reproduced Armstrong et. al\nSetting (GPT-4o-mini)", REF_LINE_BROWN),
-            (load_published_reference("armstrong", metric), "Reported Armstrong et. al\nSetting (GPT-3.5)", REF_LINE_BROWN)
+            (load_reproduced_reference("armstrong", metric, args.reference_input or in_path), REPRODUCED_SETTING_LABEL, REF_LINE_BROWN),
+            (load_published_reference("armstrong", metric), published_setting_label("armstrong", metric), REF_LINE_BROWN)
         ]
         model_vlines = {
         }
@@ -1024,13 +1028,7 @@ def main() -> None:
         working_subset = df
         print(f"Total collected values for {metric}: {len(all_collected_values)}")
         if all_collected_values:
-            current_dir= str(REPO_ROOT)
-            arm = '{}/results/armstrong_sampling_downsampling_analysis_original.csv'.format(current_dir)
-            wang = '{}/results/wang_sampling_downsampling_analysis_original.csv'.format(current_dir)
-            yin = '{}/results/yin_sampling_downsampling_analysis_original.csv'.format(current_dir)
-
-
-            noise_floor_results = compute_framework_stats(arm, wang, yin)
+            noise_floor_results = compute_default_framework_stats()
             nf_n, nf_mean, nf_std = noise_floor_results['armstrong']['n'], noise_floor_results['armstrong']['mean'], noise_floor_results['armstrong']['std']
             print(f"Noise floor (sampled n={nf_n}): mean={nf_mean}, std={nf_std}")
             

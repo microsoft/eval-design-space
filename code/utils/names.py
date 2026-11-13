@@ -270,35 +270,39 @@ class Names:
                 }
                 
             if id =='lippens':
-                male_groups = [
-                    'white_male', 'asian_male', 'hispanic_male', 'black_male',
-                    'arab_male', 'central_african_male', 'dutch_male',
-                    'eastern_european_male', 'turkish_male', 'white_american_male',
-                    'black_american_male',
+                demographic_groups = [
+                    'white_american',
+                    'black_american',
+                    'asian',
+                    'hispanic',
+                    'arab',
+                    'central_african',
+                    'dutch',
+                    'eastern_european',
+                    'turkish',
+                    
                 ]
-                wm = names[names['group'].isin(male_groups)]['name'].tolist()
 
-                female_groups = [
-                    'white_female', 'asian_female', 'hispanic_female', 'black_female',
-                    'arab_female', 'central_african_female', 'dutch_female',
-                    'eastern_european_female', 'turkish_female', 'white_american_female',
-                    'black_american_female',
-                ]
-                wf = names[names['group'].isin(female_groups)]['name'].tolist()
-
-                # Ensure wf and wm have the same length by cutting both to the min length
-                min_len = min(len(wf), len(wm))
-                wf = wf[:min_len]
-                wm = wm[:min_len]
-
-                # sample 16 names from each group
                 random.seed(random_state)
-                wf = random.sample(wf, min(16, len(wf)))
-                wm = random.sample(wm, min(16, len(wm)))
+                formatted_names = {}
 
-                formatted_names = {
-                    'white': wf + wm,
-                }
+                for group in demographic_groups:
+                    male_group = f"{group}_male"
+                    female_group = f"{group}_female"
+
+                    male_names = names[names['group'] == male_group]['name'].tolist()
+                    female_names = names[names['group'] == female_group]['name'].tolist()
+
+                    # Balance male/female counts within each demographic group
+                    min_len = min(len(male_names), len(female_names))
+                    male_names = male_names[:min_len]
+                    female_names = female_names[:min_len]
+
+                    # Sample up to 4 names per sex (same pattern as other armstrong blocks)
+                    female_sample = random.sample(female_names, min(4, len(female_names)))
+                    male_sample = random.sample(male_names, min(4, len(male_names)))
+
+                    formatted_names[group] = female_sample + male_sample
 
                 
             if id =='rozado' or id =='wen' or id =='wang':
