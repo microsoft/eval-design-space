@@ -690,17 +690,8 @@ def main():
     parser.add_argument("--quantile", type=float, default=0.5, help="Target quantile for --ablation quantile")
     parser.add_argument("--feature_importance", action="store_true", help="Also run permutation feature importance over dimensions (name/job/model/random_num) on the held-out folds")
     parser.add_argument("--n-repeats", type=int, default=30, help="Number of shuffles per dimension for --feature_importance (default 30)")
-    parser.add_argument("--compare-models", action="store_true", help="Compare OLS, Elastic Net with interactions, and CatBoost permutation importance")
-    parser.add_argument("--inner-splits", type=int, default=3, help="Inner tuning folds for --compare-models")
-    parser.add_argument("--n-jobs", type=int, default=1, help="Grid-search workers for --compare-models")
     args = parser.parse_args()
 
-    if args.compare_models:
-        if args.ablation != 'none':
-            parser.error('--compare-models currently supports only --ablation none')
-        from utils.permutation_importance_comparison import run_comparison
-        run_comparison(args)
-        return
     args.metric = args.metric or 'selection_rate'
 
     include_interactions = args.model_spec == 'interactions'

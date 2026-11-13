@@ -1,9 +1,11 @@
-# Core analysis (exported from Python 3.13.11 on 2026-09-11)
+# Core analysis (Python 3.13.11 environment)
+catboost==1.2.8
 ipython==9.10.0
 matplotlib==3.10.8
 numpy==2.4.2
 openai==2.20.0
 pandas==3.0.0
+pydantic==2.12.4
 python-dotenv==1.2.2
 PyYAML==6.0.3
 requests==2.33.0
@@ -24,6 +26,6 @@ together==2.32.0
 # Optional notebook similarity metrics
 sentence-transformers==5.6.0
 
-# Documentation build (.github/workflows/deploy-pages.yml)
+# Optional documentation tooling
 mkdocs-material==9.7.7
 mkdocstrings[python]==1.0.6
