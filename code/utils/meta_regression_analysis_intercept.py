@@ -36,6 +36,12 @@ TITLE_FONT_SIZE = 25
 LABEL_FONT_SIZE = 13
 LEGEND_FONT_SIZE = 15
 TICK_FONT_SIZE = 13
+PANEL_TITLE_FONT_SIZE = 18
+PANEL_LABEL_FONT_SIZE = 16
+PANEL_TICK_FONT_SIZE = 14
+PANEL_LEGEND_FONT_SIZE = 12
+PANEL_FIGSIZE = (9, 7)
+PANEL_DPI = 150
 plt.rcParams.update({
     'font.family': 'sans-serif',
     'font.sans-serif': ['Inter-Regular', 'DejaVu Sans', 'Arial', 'Liberation Sans'],
@@ -386,9 +392,29 @@ def cross_validate(X, y, X_cols, df=None, color_col=None, n_splits=5, random_sta
     return r2_mean, r2_std, rmse_mean, all_y_test, all_pred_test, all_color_test
 
 
+def panel_description(args, ablation):
+    metric = {
+        'selection_rate': 'Selection Rate',
+        'score_difference': 'Score Difference',
+        'regression_coefficients': 'Gender Effect',
+    }.get(args.metric, args.metric.replace('_', ' ').title())
+    estimator = {'quantile': 'Quantile Regression', 'logistic': 'Logistic Regression'}.get(ablation, 'OLS')
+    context = f'{args.exp_framework.capitalize()}, {estimator}'
+    if ablation not in ('none', 'quantile', 'logistic'):
+        context += f", {ablation.replace('_', ' ').title()} Ablation"
+    return metric, context
+
+
+def style_panel(ax):
+    ax.title.set_fontsize(PANEL_TITLE_FONT_SIZE)
+    ax.xaxis.label.set_size(PANEL_LABEL_FONT_SIZE)
+    ax.yaxis.label.set_size(PANEL_LABEL_FONT_SIZE)
+    ax.tick_params(axis='both', labelsize=PANEL_TICK_FONT_SIZE)
+
+
 def plot(all_y_test, all_pred_test, all_color_test, r2, rmse, args, ablation='none'):
     # Scatter plot with an identity line, optionally colored by category.
-    fig, ax = plt.subplots(figsize=(9, 7))
+    fig, ax = plt.subplots(figsize=PANEL_FIGSIZE)
     
     if args.color_by != 'none':
         # Collect all color values and create a color mapping
@@ -424,21 +450,23 @@ def plot(all_y_test, all_pred_test, all_color_test, r2, rmse, args, ablation='no
     ax.set_xlim(x_limits)
     ax.set_ylim(y_limits)
     
-    ax.set_xlabel('Observed')
-    ax.set_ylabel('Predicted')
-    ax.set_title('Observed vs Predicted Selection Rate')
+    metric, context = panel_description(args, ablation)
+    ax.set_xlabel(f'Observed {metric}')
+    ax.set_ylabel(f'Predicted {metric}')
+    ax.set_title(f'Observed vs. Predicted {metric} ({context})')
+    style_panel(ax)
 
     handles, labels = ax.get_legend_handles_labels()
     handles.append(Line2D([], [], linestyle='none', marker=''))
     labels.append(f'$R^2 = {r2:.3f}$')
-    ax.legend(handles, labels, loc='upper left')
+    ax.legend(handles, labels, loc='upper left', fontsize=PANEL_LEGEND_FONT_SIZE)
     ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
     os.makedirs(repo_path(f'results/meta/{args.exp_framework}'), exist_ok=True)
     plot_file = f"results/meta/{args.exp_framework}/meta_regression_plot_intercept_colorby_{args.color_by}_modelspec_{args.model_spec}_ablation_{ablation}.png"
-    plt.savefig(repo_path(plot_file), dpi=100, bbox_inches='tight')
+    plt.savefig(repo_path(plot_file), dpi=PANEL_DPI)
     print(f"Plot saved as '{plot_file}'")
     plt.close()
 
@@ -453,6 +481,12 @@ def coefficient_display_label(coef_name):
     else:
         label = coef_name
     return label[0].upper() + label[1:] if label else label
+
+
+def coefficient_sort_key(coef_name):
+    prefixes = ('name_', 'job_', 'model_')
+    group = next((i for i, prefix in enumerate(prefixes) if coef_name.startswith(prefix)), len(prefixes))
+    return group, coefficient_display_label(coef_name).casefold()
 
 
 def framework_column_map(exp_framework):
@@ -965,7 +999,6 @@ def main():
         df = df.drop_duplicates(subset=["Names", "Jobs", "Model", "Metric"], keep="first")
         df = df[df["Sensitive_Attribute_Vector"] == "['Woman']"]
         df = df[df["Metric"] == args.metric] #378
-
         if df.empty:
             raise ValueError("No rows with Sensitive_AttributeVector=='Woman' and Metric==args.metric found in input CSV")
 
@@ -1077,14 +1110,12 @@ def main():
         lower = ci[0].astype(float)
         upper = ci[1].astype(float)
 
-        # Exclude 'const' from the y-axis; show its value in the title
-        const_val = est.get('const', np.nan)
         if args.model_spec == 'interactions':
             # Keep interaction terms in the model fit, but omit them from the plot to reduce clutter
             coef_index = [i for i in full_index if i != 'const' and not i.startswith('int_')]
         else:
             coef_index = [i for i in full_index if i != 'const']
-        coef_index = [c for c in coef_index if c not in drops]
+        coef_index = sorted((c for c in coef_index if c not in drops), key=coefficient_sort_key)
         est_no_const = est.reindex(coef_index)
         lower_no_const = lower.reindex(coef_index)
         upper_no_const = upper.reindex(coef_index)
@@ -1106,7 +1137,7 @@ def main():
             else:
                 colors.append('gray')
 
-        fig, ax = plt.subplots(figsize=(8, max(6, len(coef_index) * 0.22)))
+        fig, ax = plt.subplots(figsize=(PANEL_FIGSIZE[0], max(PANEL_FIGSIZE[1], len(coef_index) * 0.3)))
         y_pos = np.arange(len(coef_index))
         
         # Plot each coefficient with its color
@@ -1122,8 +1153,9 @@ def main():
         ax.set_yticklabels(display_coef_labels)
         ax.invert_yaxis()
         ax.set_xlabel('Coefficient estimate')
-        # ax.set_title(f"Regression Coefficients const={const_val:.4f}")
-        ax.set_title(f"Regression Coefficients")
+        metric, context = panel_description(args, ablation_name)
+        ax.set_title(f'{metric} Coefficients ({context})')
+        style_panel(ax)
         ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         
         # Add legend for only the coefficient groups that are plotted
@@ -1138,11 +1170,11 @@ def main():
         if any(c.startswith('int_') for c in coef_index):
             legend_elements.append(Patch(facecolor='C3', label='Interaction'))
         if legend_elements:
-            ax.legend(handles=legend_elements, loc='lower left', fontsize=11)
+            ax.legend(handles=legend_elements, loc='lower left', fontsize=PANEL_LEGEND_FONT_SIZE)
         plt.tight_layout()
         os.makedirs(repo_path(f'results/meta/{args.exp_framework}'), exist_ok=True)
         coef_plot_file = f"results/meta/{args.exp_framework}/coef_ci_plot_intercept_modelspec_{args.model_spec}_ablation_{ablation_name}.png"
-        plt.savefig(repo_path(coef_plot_file), dpi=150)
+        plt.savefig(repo_path(coef_plot_file), dpi=PANEL_DPI)
         print(f"Coefficient plot saved as '{coef_plot_file}'")
         plt.close()
 
