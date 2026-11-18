@@ -41,14 +41,14 @@ echo "Created: $BASEDIR/results/figs/yin/all/selection_rate_global_density_all_w
 python plot_wang.py --reproduced_settings --full_width > /dev/null 2>&1
 echo "Created: $BASEDIR/results/figs/wang/all/score_difference_global_density_all_with_noise_floor_reported_settings.png"
 
-# 10-16. Armstrong meta-regression ablations + interactions
-python ./utils/meta_regression_analysis_intercept.py --exp_framework armstrong --metric regression_coefficient --ablation all > /dev/null 2>&1
+# 10-16. Armstrong meta-regression 
+python ./utils/meta_regression_analysis_intercept.py --exp_framework armstrong --metric regression_coefficient > /dev/null 2>&1
 echo "Created: $BASEDIR/results/meta/armstrong/ablation_summary_main.csv"
 python ./utils/meta_regression_analysis_intercept.py --exp_framework armstrong --metric regression_coefficient --model_spec interactions > /dev/null 2>&1
 echo "Created: $BASEDIR/results/meta/armstrong/meta_regression_plot_intercept_colorby_none_modelspec_interactions_ablation_none.png"
 
-# 17-23. Wang meta-regression ablations + interactions
-python ./utils/meta_regression_analysis_intercept.py --exp_framework wang --metric score_difference --ablation all > /dev/null 2>&1
+# 17-23. Wang meta-regression
+python ./utils/meta_regression_analysis_intercept.py --exp_framework wang --metric score_difference > /dev/null 2>&1
 echo "Created: $BASEDIR/results/meta/wang/ablation_summary_main.csv"
 python ./utils/meta_regression_analysis_intercept.py --exp_framework wang --metric score_difference --model_spec interactions > /dev/null 2>&1
 echo "Created: $BASEDIR/results/meta/wang/meta_regression_plot_intercept_colorby_none_modelspec_interactions_ablation_none.png"
@@ -69,6 +69,11 @@ echo "Created $BASEDIR/results/meta/yin/permutation_importance_ablation_none_int
 python utils/meta_regression_analysis_intercept.py --feature_importance > /dev/null 2>&1 
 echo "Created $BASEDIR/results/meta/yin/permutation_importance_plot_ablation_none_main.png" # fig
 echo "Created $BASEDIR/results/meta/yin/permutation_importance_ablation_none_main.csv" # csv file
+
+# Elastic Net and Catboost for Yin, Armstrong, Wang
+ python ./utils/meta_regression_predictors.py --exp_framework yin --metric selection_rate --cv-models catboost_interactions elasticnet_interactions
+ python ./utils/meta_regression_predictors.py --exp_framework wang  --cv-models catboost_interactions elasticnet_interactions
+ python ./utils/meta_regression_predictors.py --exp_framework armstrong  --cv-models catboost_interactions elasticnet_interactions
 
 
 echo "All commands completed."
