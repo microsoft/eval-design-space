@@ -71,9 +71,9 @@ echo "Created $BASEDIR/results/meta/yin/permutation_importance_plot_ablation_non
 echo "Created $BASEDIR/results/meta/yin/permutation_importance_ablation_none_main.csv" # csv file
 
 # Elastic Net and Catboost for Yin, Armstrong, Wang
- python ./utils/meta_regression_predictors.py --exp_framework yin --metric selection_rate --cv-models catboost_interactions elasticnet_interactions
- python ./utils/meta_regression_predictors.py --exp_framework wang  --cv-models catboost_interactions elasticnet_interactions
- python ./utils/meta_regression_predictors.py --exp_framework armstrong  --cv-models catboost_interactions elasticnet_interactions
+ python ./utils/meta_regression_predictors.py --exp_framework yin --metric selection_rate --cv-models catboost_main elasticnet_interactions
+ python ./utils/meta_regression_predictors.py --exp_framework wang  --cv-models catboost_main elasticnet_interactions
+ python ./utils/meta_regression_predictors.py --exp_framework armstrong  --cv-models catboost_main elasticnet_interactions
 
 
 echo "All commands completed."
