@@ -25,7 +25,7 @@ import statsmodels.api as sm
 from statistics import NormalDist
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error, r2_score
-
+from utils.meta_regression_predictors import MODEL_ALIASES
 from sklearn.inspection import permutation_importance
 from sklearn.base import BaseEstimator, RegressorMixin
 
@@ -598,6 +598,14 @@ def build_design_matrix(df, exp_framework='yin', include_interactions=False):
     return X, X_cols, all_cols, (drop_name, drop_job, drop_model)
 
 
+def normalize_yin_models(df):
+    models = df['model'].astype(str).str.lower().map(MODEL_ALIASES)
+    if models.isna().any():
+        raise ValueError(f"Unrecognized model identifiers: {df.loc[models.isna(), 'model'].unique().tolist()}")
+    result = df.copy()
+    result['model'] = models
+    return result
+
 
 
 def permutation_feature_importance(df, y, args, drops, ablation='none'):
@@ -936,7 +944,7 @@ def main():
 
 
     if args.exp_framework=='yin':
-        yin_df = df[df['gender'].eq('W')].copy()
+        yin_df = normalize_yin_models(df[df['gender'].eq('W')])
         yin_dedupe_columns = [
             column for column in ('gender', 'job', 'model', 'rank', 'name_bundle', 'job_bundle')
             if column in yin_df.columns
